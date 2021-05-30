@@ -3,4 +3,4 @@ PROJECT(BigInteger)
 
 add_executable(
         BigInteger
-        src/BigInteger.cpp)
+        src/BigInteger.cpp src/Addition.cpp src/Subtraction.cpp src/Transformation.cpp src/Comparison.cpp src/Multiplication.cpp src/Division.cpp)
