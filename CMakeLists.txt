@@ -4,6 +4,10 @@ set(CMAKE_CXX_FLAGS "-std=c++20")
 
 
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+
+message("best:")
+message(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+
 conan_basic_setup()
 
 add_executable(

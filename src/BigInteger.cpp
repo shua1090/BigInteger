@@ -301,8 +301,9 @@ BigInteger BigInteger::operator%(const BigInteger &b) const{
 
 // Unary Operations
 BigInteger BigInteger::operator-() {
-    if (this->sign) this->sign = false;
-    else this->sign = true;
+    BigInteger cop = *this;
+    cop.sign = (cop.sign) ? 0 : 1;
+    return cop;
 }
 
 BigInteger BigInteger::operator++() {
