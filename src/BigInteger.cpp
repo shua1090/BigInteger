@@ -6,13 +6,21 @@
 #include <chrono>
 #include <random>
 #include <string>
-//#include <cstring>
-#include<openssl/aes.h>
-#include<openssl/evp.h>
-#include<openssl/err.h>
-#include<cryptopp/seckey.h>
-#include<cryptopp/integer.h>
 
+#include <regex>
+inline static std::string removePrecedingZeroesAndUnderscores(std::string temp){
+    auto numNotOfZero = temp.find_first_not_of('0');
+
+    if (numNotOfZero== std::string::npos) temp = "0";
+    else {
+        temp = std::regex_replace(temp.substr(numNotOfZero), std::regex("_|,"), "");
+    }
+    return temp;
+}
+
+inline static std::string b643Arr(unsigned char * ptr){
+    std::bitset<24> initialSet(ptr*);
+}
 
 BigInteger::BigInteger(std::string number) {
     if(number[0] == '-'){
@@ -24,7 +32,7 @@ BigInteger::BigInteger(std::string number) {
         std::cout << "The failing num: " << number << std::endl;
         throw std::exception();
     }
-    else this->num = number;
+    else this->num = removePrecedingZeroesAndUnderscores(number);
 }
 BigInteger::BigInteger(long a) {
     std::string number = (std::to_string(a));
@@ -37,18 +45,18 @@ BigInteger::BigInteger(long a) {
         std::cout << "The failing num: " << number << std::endl;
         throw std::exception();
     }
-    else this->num = number;
+    else this->num = removePrecedingZeroesAndUnderscores(number);
 }
 BigInteger::BigInteger(const std::string& number, bool sign) {
     this->sign = sign;
     if (number.find_first_not_of("0123456789") != std::string::npos){
         throw std::exception();
     }
-    else this->num = number;
+    else this->num = removePrecedingZeroesAndUnderscores(number);
 }
 BigInteger::BigInteger(const BigInteger &b) {
     this->sign = b.sign;
-    this->num = b.num;
+    this->num = removePrecedingZeroesAndUnderscores(b.num);
 }
 
 BigInteger BigInteger::addDecimals(std::string a, std::string b) {
@@ -131,6 +139,48 @@ BigInteger BigInteger::subtractDecimals(const std::string& a, const std::string&
     }
     return BigInteger(((sign) ? "-" : "") + temp);
 }
+std::string BigInteger::simpleMultiply(const std::string &a, const char b) {
+    std::string num = "0";
+    // Check this if 0 errors:
+    if (a.starts_with('0') || b == '0') return "0";
+    if (a == "1") return std::string(1, b);
+    if (b == '1') return a;
+
+    for (int i = 0; i < (b-'0'); i++){
+        num = addDecimals(num, a).toString();
+    }
+    return num;
+}
+// A // B
+BigInteger BigInteger::intDivide(std::string a, const std::string& b){
+    if (compare(a, b) == 1) return 0;
+    if (a.find_first_not_of('0') == std::string::npos) return 0;
+    if (b.find_first_not_of('0') == std::string::npos) throw std::exception();
+    else {
+        std::string tempDividend = a;
+        BigInteger amount(0);
+        while (true){
+            a = subtractDecimals(a,b).toString();
+//            std::cout << "a: " << a << " divisor: " << b << std::endl;
+            if (a.starts_with('-')) break;
+            else amount = amount + 1;
+        }
+        return amount;
+    }
+}
+int BigInteger::compare(const std::string& a, const std::string &b){
+    if (b[0] == '-' && a[0] != '-') return -1;
+    else if (a[0] == '-' && b[0] != '-') return 1;
+    else if (a.length() > b.length()) return (a[0] != '-' && b[0] != '-') ? -1 : 1;
+    else if (a.length() < b.length()) return (a[0] != '-' && b[0] != '-') ? 1 : -1;
+    else {
+        for (int f = 0; f < a.length(); f++){
+            if (a[f] > b[f]) return (a[0] == '-') ? 1 : -1;
+            else if (b[f] > a[f]) return (b[0] == '-') ? -1 : 1;
+        }
+        return 0;
+    }
+}
 
 BigInteger BigInteger::add(const BigInteger& b) const {
 
@@ -143,7 +193,6 @@ BigInteger BigInteger::add(const BigInteger& b) const {
     } else if (!this->sign && b.sign){
         return subtractDecimals(this->num, b.num);
     } else return BigInteger(addDecimals(this->num, b.num));
-
 }
 BigInteger BigInteger::subtract(const BigInteger& b) const {
     if (this->sign && b.sign){
@@ -164,76 +213,74 @@ BigInteger BigInteger::multiply(const BigInteger &b) const {
 
     BigInteger a("0");
 
-    for (long i = b.num.length() - 1; i >= 0; i--){
+    for (unsigned long i = b.num.length() - 1; i >= 0; i--){
         a = a + BigInteger(simpleMultiply(this->num, b.num[i]) + std::string (b.num
                 .length() - 1  - i, '0'));
+        if (i == 0) break;
     }
 
     if ((b.sign && !this->sign) || (!b.sign && this->sign)) a.sign = true;
     return a;
 }
 BigInteger BigInteger::divide(const BigInteger &b) const {
-    BigInteger dividend = *this;
-    dividend.sign = false;
-    BigInteger divisor = b;
-    divisor.sign = false;
+    if (this->operator<(b)){return BigInteger(0);}
+    else {
+        std::string tempCount = this->num.substr(0, 1);
+        std::string result;
+        BigInteger tempThing(0);
+        for (long a = 1; a < this->num.length(); a++){
+            tempThing = intDivide(tempCount, b.num);
+            if (tempThing.num[0] == '0'){
+                tempCount += this->num[a];
+                result += "0";
+            } else {
+                result += tempThing.num;
+                tempCount = subtractDecimals(tempCount, simpleMultiply(b.num, tempThing.num[0])).num +(std::string(1, this->num[a]) );
 
-    BigInteger counter(0);
+                auto numNotOfZero = tempCount.find_first_not_of('0');
 
-    while (true) {
-        if (dividend < divisor){
-            break;
-        } else {
-            dividend = dividend - divisor;
-            counter++;
+                if (numNotOfZero== std::string::npos) tempCount = "0";
+                else tempCount = tempCount.substr(numNotOfZero);
+            }
         }
-    }
+        auto numNotOfZero = tempCount.find_first_not_of('0');
 
-    if ((b.sign && !this->sign) || (!b.sign && this->sign)) counter.sign = 1;
-    return counter;
+        if (numNotOfZero== std::string::npos) tempCount = "0";
+        else tempCount = tempCount.substr(numNotOfZero);
+
+        bool sign = false;
+        if ((b.sign && !this->sign) || (!b.sign && this->sign)) sign = true;
+        return result + intDivide(tempCount, b.num).num;
+    }
 }
 BigInteger BigInteger::mod(const BigInteger &b) const {
-    BigInteger temp = *this / b;
-    return *this - (b * temp);
+    if (this->operator<(b)){return *this;}
+    else {
+        std::string tempCount = this->num.substr(0, 1);
+        std::string result;
+        BigInteger tempThing(0);
+        for (long a = 1; a < this->num.length(); a++){
+            tempThing = intDivide(tempCount, b.num);
+            if (tempThing.num[0] == '0'){
+                tempCount += this->num[a];
+                result += "0";
+            } else {
+                result += tempThing.num;
 
-//
-//    if (b.sign || this->sign) return 0;
-//    BigInteger dividend = *this;
-//    dividend.sign = false;
-//    BigInteger divisor = b;
-//    divisor.sign = false;
-//
-//    if (b.num.length() < this->num.length() -1){
-//        int multiplier = 0;
-//        while (dividend.num.length() > divisor.num.length() + 1){
-//            long amountOfZeroes = this->num.length();
-//            std::cout << "Amount of Zeroes: " << amountOfZeroes - multiplier<< std::endl;
-//            if (dividend < 0){
-//                dividend = dividend + (BigInteger("1" + std::string(amountOfZeroes - multiplier, '0')) * divisor);
-//                multiplier += 1;
-//            }
-//            std::cout << "Old Dividend: " << dividend.toString() << std::endl;
-//            dividend = dividend - (BigInteger("1" + std::string(amountOfZeroes - multiplier, '0')) * divisor);
-//            std::cout << "New Dividend: " << dividend.toString() << std::endl;
-//        }
-//        long amountOfZeroes = this->num.length() - divisor.num.length();
-//        std::cout << "Newest Dividend: " << dividend.toString() << std::endl;
-//        std::cout << "New divisor: " << divisor.toString() << std::endl;
-//    }
-//
-//    while (true) {
-//        std::cout << "IN this LOOP" << std::endl;
-//        if (dividend < divisor){
-//            if (dividend < 0){
-//                dividend = dividend + divisor;
-//            }
-//            break;
-//        } else {
-//            dividend = dividend - divisor;
-//        }
-//    }
-//
-//    return dividend;
+                tempCount = subtractDecimals(tempCount, simpleMultiply(b.num, tempThing.num[0])).num +(std::string(1, this->num[a]) );
+
+                auto numNotOfZero = tempCount.find_first_not_of('0');
+
+                if (numNotOfZero== std::string::npos) tempCount = "0";
+                else tempCount = tempCount.substr(numNotOfZero);
+            }
+        }
+        auto numNotOfZero = tempCount.find_first_not_of('0');
+
+        if (numNotOfZero== std::string::npos) tempCount = "0";
+        else tempCount = tempCount.substr(numNotOfZero);
+        return *this - (BigInteger(result+ intDivide(tempCount, b.num).num) * b);
+    }
 }
 BigInteger BigInteger::pow(const BigInteger &b) const {
     if (b < BigInteger(0)) return 0;
@@ -249,37 +296,34 @@ BigInteger BigInteger::pow(const BigInteger &b) const {
     return orig;
 }
 
-
-std::string BigInteger::simpleMultiply(const std::string &a, const char b) {
-    std::string num = "0";
-    // Check this if 0 errors:
-    if (a.starts_with('0') || b == '0') return "0";
-    if (a == "1") return std::string(1, b);
-    if (b == '1') return a;
-
-    for (int i = 0; i < (b-'0'); i++){
-        num = addDecimals(num, a).toString();
-    }
-    return num;
+int BigInteger::toInt() const{
+    return std::stoi(this->toString());
 }
 
-int BigInteger::compare(std::string a, std::string b){
-    if (b[0] == '-' && a[0] != '-') return -1;
-    else if (a[0] == '-' && b[0] != '-') return 1;
-    else if (a.length() > b.length()) return (a[0] != '-' && b[0] != '-') ? -1 : 1;
-    else if (a.length() < b.length()) return (a[0] != '-' && b[0] != '-') ? 1 : -1;
-    else {
-        for (int f = 0; f < a.length(); f++){
-            if (a[f] > b[f]) return (a[0] == '-') ? 1 : -1;
-            else if (b[f] > a[f]) return (b[0] == '-') ? -1 : 1;
-        }
-        return 0;
-    }
+long BigInteger::toLong() const{
+    return std::stoll(this->toString());
 }
 
 std::string BigInteger::toString() const {
     std::string temp = this->num;
     return ((this->sign) ? "-" : "") + temp;
+}
+
+std::string BigInteger::toString(unsigned int radix) const {
+    if (radix > 16 || radix <= 0) throw std::exception();
+    else {
+        BigInteger cop = *this;
+        std::string stringNum;
+        while (cop > 0){
+            int rem = (cop % radix).toInt();
+            if (rem > 9){
+                rem = (rem % 10) + 'A';
+            } else rem = rem + '0';
+            stringNum = char(rem) + stringNum ;
+            cop = cop / radix;
+        }
+        return stringNum;
+    }
 }
 
 // Binary Operations
@@ -349,15 +393,17 @@ bool BigInteger::operator!=(const BigInteger &b) const {
     return (this->compare(this->toString(), b.toString()) != 0);
 }
 
-int main(int argc, char **argv) {
+std::ostream &operator<<(std::ostream &os, const BigInteger &dt) {
+    os << dt.toString();
+    return os;
+}
 
+int main(int argc, char **argv) {
     //9223372036854775807
     auto start = std::chrono::high_resolution_clock::now();
-//
-//    std::cout << (BigInteger(500).pow(500)
-//    % BigInteger(2)).toString() << std::endl;
-//    auto stop = std::chrono::high_resolution_clock::now();
-//    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-//    std::cout << duration.count() << " microseconds" << std::endl;
+    std::cout << BigInteger(15).toString(16) << std::endl;
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+    std::cout << duration.count() << " milliseconds" << std::endl;
     return 0;
 }

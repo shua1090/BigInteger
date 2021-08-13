@@ -16,7 +16,8 @@ private:
     inline static BigInteger addDecimals(std::string a, std::string b);
     inline static BigInteger subtractDecimals(const std::string& a, const std::string& b);
     inline static std::string simpleMultiply(const std::string &a, char b);
-    inline static int compare(std::string a, std::string b);
+    inline static BigInteger intDivide(std::string a, const std::string& b);
+    inline static int compare(const std::string& a, const std::string &b);
 public:
     // Constructor
 
@@ -53,8 +54,15 @@ public:
     bool operator==(const BigInteger &b) const;
     bool operator!=(const BigInteger &b) const;
 
-    std::string toString() const;
+    inline int toInt() const;
+    inline long toLong() const;
 
+
+    std::string toString() const;
+    std::string toString(unsigned int radix) const;
+
+
+    friend std::ostream& operator<<(std::ostream& os, const BigInteger& dt);
 };
 
 #endif //BIGINTEGER_BIGINTEGER_H
