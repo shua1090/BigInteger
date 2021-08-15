@@ -5,6 +5,8 @@
 #include <bitset>
 #include <vector>
 
+
+
 class BigInteger {
 private:
 
@@ -56,5 +58,9 @@ public:
     std::string toString() const;
 
 };
+
+BigInteger operator""_i(unsigned long long a){
+    return BigInteger(a);
+}
 
 #endif //BIGINTEGER_BIGINTEGER_H

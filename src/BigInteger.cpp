@@ -6,12 +6,6 @@
 #include <chrono>
 #include <random>
 #include <string>
-//#include <cstring>
-#include<openssl/aes.h>
-#include<openssl/evp.h>
-#include<openssl/err.h>
-#include<cryptopp/seckey.h>
-#include<cryptopp/integer.h>
 
 
 BigInteger::BigInteger(std::string number) {
@@ -158,7 +152,7 @@ BigInteger BigInteger::subtract(const BigInteger& b) const {
 }
 BigInteger BigInteger::multiply(const BigInteger &b) const {
 
-    if (this->num.starts_with('0') || b.num == "0") return BigInteger("0");
+    if (this->num.rfind("0", 0) == 0 || b.num == "0") return BigInteger("0");
     if (this->num == "1") return b;
     if (b.num == "1") return *this;
 
@@ -253,7 +247,7 @@ BigInteger BigInteger::pow(const BigInteger &b) const {
 std::string BigInteger::simpleMultiply(const std::string &a, const char b) {
     std::string num = "0";
     // Check this if 0 errors:
-    if (a.starts_with('0') || b == '0') return "0";
+    if (a.rfind("0", 0) == 0 || b == '0') return "0";
     if (a == "1") return std::string(1, b);
     if (b == '1') return a;
 
@@ -353,11 +347,12 @@ int main(int argc, char **argv) {
 
     //9223372036854775807
     auto start = std::chrono::high_resolution_clock::now();
-//
-//    std::cout << (BigInteger(500).pow(500)
-//    % BigInteger(2)).toString() << std::endl;
-//    auto stop = std::chrono::high_resolution_clock::now();
-//    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-//    std::cout << duration.count() << " microseconds" << std::endl;
+
+    std::cout << (500_i + 500).toString() << std::endl;
+
+//    std::cout << (BigInteger(500).pow(500)).toString() << std::endl;
+   auto stop = std::chrono::high_resolution_clock::now();
+   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+   std::cout << duration.count() << " microseconds" << std::endl;
     return 0;
 }

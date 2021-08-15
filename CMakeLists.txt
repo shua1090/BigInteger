@@ -1,17 +1,10 @@
 cmake_minimum_required(VERSION 3.17)
-PROJECT(BigInteger)
-set(CMAKE_CXX_FLAGS "-std=c++20")
+project(BigInteger)
 
-
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-
-message("best:")
-message(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-
-conan_basic_setup()
+set_property(GLOBAL PROPERTY CXX_STANDARD 20)
 
 add_executable(
         BigInteger
         src/BigInteger.cpp)
-message(${CONAN_LIBS})
+
 target_link_libraries(BigInteger ${CONAN_LIBS})
